@@ -1,4 +1,4 @@
-import Vector from "./Vector";
+import Vertex from "./Vertex";
 import multiplyByMatrix, {
     constructMatrix,
     matrixInverse,
@@ -10,7 +10,7 @@ import rotationMatrix from "../math/rotationMatrix";
 import {sumVectors} from "../math/vectorOperations";
 
 export default class Camera {
-    vector = new Vector(0, 0, 0) // vCamera
+    vector = new Vertex(0, 0, 0) // vCamera
     matrixCamera = constructMatrix(4, 4, 0)
     viewMatrix = constructMatrix(4, 4, 0)
     fYaw = 0

@@ -1,4 +1,4 @@
-import Vector from "./Vector";
+import Vertex from "./Vertex";
 import Camera from "./Camera";
 
 export default class RenderingEngine {
@@ -16,7 +16,7 @@ export default class RenderingEngine {
         this.zNear = .001
         this.zFar = 10000
 
-        this.lightSource = new Vector(0, 0, -1)
+        this.lightSource = new Vertex(0, 0, -1)
 
         this._updateZProjection()
     }
@@ -31,7 +31,8 @@ export default class RenderingEngine {
         wireframeMode,
         texturing,
         rotations,
-        vertex
+        vertex,
+        visibleClipping
     ) {
         let times = [], fps, performanceMetrics = {}
 
@@ -47,7 +48,7 @@ export default class RenderingEngine {
                         el.rotate('z', rotations.angle)
                 })
             }
-            this.draw(wireframeMode, texturing, shading, vertex, perf => performanceMetrics = perf)
+            this.draw(wireframeMode, texturing, shading, vertex, visibleClipping, perf => performanceMetrics = perf)
 
             while (times.length > 0 && times[0] <= start - 1000) {
                 times.shift();
@@ -68,7 +69,7 @@ export default class RenderingEngine {
         this.currentFrame = requestAnimationFrame(exec);
     }
 
-    draw(wireframe, texturing, shading, vertex, callback = () => null) {
+    draw(wireframe, texturing, shading, vertex, visibleClipping, callback = () => null) {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
         this.meshes.forEach(el => {
             el.draw(this.ctx, {
@@ -79,7 +80,7 @@ export default class RenderingEngine {
                 zNear: this.zNear,
                 camera: this.camera,
                 lightSource: this.lightSource.matrix
-            }, wireframe, texturing, shading, vertex, callback)
+            }, wireframe, texturing, shading, vertex, visibleClipping, callback)
         })
     }
 }

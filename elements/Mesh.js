@@ -1,25 +1,22 @@
 import trianglesToRaster from "../helpers/trianglesToRaster";
 import {clipAgainstPlane} from "../helpers/clippingHandler";
+import IndexBuffer from "./IndexBuffer";
 
 export default class Mesh {
-    triangles = []
-
-    constructor(triangles) {
-        if (Array.isArray(triangles))
-            this.triangles = triangles
+    constructor(triangles, vertices) {
+        this.indexBuffer = new IndexBuffer(vertices)
+        this.triangles = triangles
     }
 
     rotate(axis, angle) {
-
-        this.triangles.forEach(tri => {
-            tri.rotate(axis, angle)
-        })
+        this.indexBuffer.rotateVertices(axis, angle)
     }
 
-    draw(ctx, engineAttrs, wireframe, texturing, shading, vertex, callback) {
-        const sortTriangles = (triangleA, triangleB) => {
-            let z1 = Math.abs(triangleA.vectors[0].z + triangleA.vectors[1].z + triangleA.vectors[2].z) / 3
-            let z2 = Math.abs((triangleB.vectors[0].z + triangleB.vectors[1].z + triangleB.vectors[2].z)) / 3
+    draw(ctx, engineAttrs, wireframe, texturing, shading, vertex, visibleClipping, callback) {
+        const sortTriangles = (triangleA, triangleB, buffer) => {
+
+            let z1 = Math.abs(buffer[triangleA.vertices[0]].projectedMatrix[2][0] + buffer[triangleA.vertices[1]].projectedMatrix[2][0] + buffer[triangleA.vertices[2]].projectedMatrix[2][0]) / 3
+            let z2 = Math.abs((buffer[triangleB.vertices[0]].projectedMatrix[2][0] + buffer[triangleB.vertices[1]].projectedMatrix[2][0] + buffer[triangleB.vertices[2]].projectedMatrix[2][0])) / 3
 
             if (z1 < z2) {
                 return -1;
@@ -29,22 +26,31 @@ export default class Mesh {
             }
             return 0;
         }
+        // const startTriangleMapping = performance.now()
+        this.indexBuffer.processVertices(
+            engineAttrs.camera.worldMatrix,
+            engineAttrs.camera.viewMatrix,
+            engineAttrs.fieldOfView,
+            engineAttrs.aspectRatio,
+            engineAttrs.zScale,
+            engineAttrs.zOffset,
+            ctx.canvas.width,
+            ctx.canvas.height
+        )
 
-        const startTriangleMapping = performance.now()
-        let toRaster = trianglesToRaster(engineAttrs, ctx.canvas.width, ctx.canvas.height, shading, this.triangles)
-        const endTriangleMapping = performance.now()
+        let toRaster = trianglesToRaster(engineAttrs, ctx.canvas.width, ctx.canvas.height, shading, this.triangles, this.indexBuffer.buffer, visibleClipping)
+        // const endTriangleMapping = performance.now()
+        // const startSort = performance.now()
+        toRaster = toRaster.sort((a, b) => sortTriangles(a, b, this.indexBuffer.buffer))
+        // const endSort = performance.now()
 
-        const startSort = performance.now()
-        toRaster = toRaster.sort(sortTriangles)
-        const endSort = performance.now()
-
-        let pInt = 0, startDrawing = 0, endDrawing = 0, startClipping = 0, endClipping = 0
+        let pInt = 0//, startDrawing = 0, endDrawing = 0, startClipping = 0, endClipping = 0
         for (let current = 0; current < toRaster.length; current++) {
             let listTriangles = []
 
             listTriangles.push(toRaster[current])
             let nNewTriangles = 1;
-            startClipping = performance.now()
+            // startClipping = performance.now()
 
             // Culling part 3 (Frustum)
             for (pInt = 0; pInt < 4; pInt++) {
@@ -60,7 +66,7 @@ export default class Mesh {
                             nTrisToAdd = clipAgainstPlane(
                                 [[0], [0], [0]],
                                 [[0], [1], [0]],
-                                test)
+                                test, visibleClipping)
 
                             break
                         }
@@ -68,21 +74,21 @@ export default class Mesh {
                             nTrisToAdd = clipAgainstPlane(
                                 [[1], [ctx.canvas.height - 1], [0]],
                                 [[0], [-1], [0]],
-                                test)
+                                test, visibleClipping)
                             break
                         }
                         case 2: {
                             nTrisToAdd = clipAgainstPlane(
                                 [[0], [0], [0]],
                                 [[1], [0], [0]],
-                                test)
+                                test, visibleClipping)
                             break
                         }
                         case 3: {
                             nTrisToAdd = clipAgainstPlane(
                                 [[ctx.canvas.width - 1], [0], [0]],
                                 [[-1], [0], [0]],
-                                test
+                                test, visibleClipping
                             )
                             break
                         }
@@ -96,19 +102,19 @@ export default class Mesh {
 
                 nNewTriangles = listTriangles.length;
             }
-            endClipping = performance.now()
-            startDrawing = performance.now()
+            // endClipping = performance.now()
+            // startDrawing = performance.now()
             listTriangles.forEach(tri => {
                 tri.draw(ctx, wireframe, texturing, vertex)
             })
-            endDrawing = performance.now()
+            // endDrawing = performance.now()
         }
 
-        callback({
-            drawing: endDrawing - startDrawing,
-            sort: endSort - startSort,
-            mapping: endTriangleMapping - startTriangleMapping,
-            clipping: endClipping - startClipping
-        })
+        // callback({
+        //     drawing: endDrawing - startDrawing,
+        //     sort: endSort - startSort,
+        //     mapping: endTriangleMapping - startTriangleMapping,
+        //     clipping: endClipping - startClipping
+        // })
     }
 }

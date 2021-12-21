@@ -1,22 +1,21 @@
-import Vector from "./Vector";
+import Vertex from "./Vertex";
 import {MatrixMultiplyVector} from "../math/matrixOperations";
 import rotationMatrix from "../math/rotationMatrix";
 import conf from '../../config.json'
 
 export default class Triangle {
-    vectors = []
+    vertices = []
     color = 'rgba(0,0,0,0)'
+    toRender = new Array(3)
 
-    constructor(vecA, vecB, vecC, noColor=false) {
+    constructor(vertices,  noColor=false) {
         this.noColor = noColor
-        this.vectors.push(new Vector(...vecA))
-        this.vectors.push(new Vector(...vecB))
-        this.vectors.push(new Vector(...vecC))
+        this.vertices = vertices
     }
 
     draw(ctx, wireframe, texturing, vertex) {
         if (vertex) {
-            this.vectors.forEach((vec, index) => {
+            this.toRender.forEach((vec, index) => {
                 ctx.beginPath()
 
                 ctx.moveTo(vec.x, vec.y)
@@ -27,8 +26,7 @@ export default class Triangle {
             })
         }
         ctx.beginPath()
-        this.vectors.forEach((vec, index) => {
-
+        this.toRender.forEach((vec, index) => {
             if (index === 0)
                 ctx.moveTo(vec.x, vec.y)
             else
@@ -47,12 +45,4 @@ export default class Triangle {
             ctx.stroke()
     }
 
-
-    rotate(axis, angle) {
-        const rotationM = rotationMatrix(axis, angle)
-        this.vectors.forEach((vec) => {
-            let newMatrix = MatrixMultiplyVector(rotationM, vec.matrix)
-            vec.update(newMatrix[0][0], newMatrix[1][0], newMatrix[2][0])
-        })
-    }
 }

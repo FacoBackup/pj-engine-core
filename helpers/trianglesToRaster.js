@@ -8,17 +8,11 @@ import {
     subtractVectors
 } from "../math/vectorOperations";
 import Triangle from "../elements/Triangle";
-import Vector from "../elements/Vector";
+import Vertex from "../elements/Vertex";
 import {clipAgainstPlane} from "./clippingHandler";
 
-function adjustTriangle(worldMatrix, viewMatrix, tri, dotProdLightVec, fieldOfView, aspectRatio, zScale, zOffset, canvasWidth, canvasHeight) {
-    let updatedA = scaleIntoView(projectVector(tri.vectors[0].matrix, fieldOfView, aspectRatio, zScale, zOffset), canvasWidth, canvasHeight),
-        updatedB = scaleIntoView(projectVector(tri.vectors[1].matrix, fieldOfView, aspectRatio, zScale, zOffset), canvasWidth, canvasHeight),
-        updatedC = scaleIntoView(projectVector(tri.vectors[2].matrix, fieldOfView, aspectRatio, zScale, zOffset), canvasWidth, canvasHeight)
-    tri.vectors[0] = new Vector(updatedA[0][0], updatedA[1][0], updatedA[2][0])
-    tri.vectors[1] = new Vector(updatedB[0][0], updatedB[1][0], updatedB[2][0])
-    tri.vectors[2] = new Vector(updatedC[0][0], updatedC[1][0], updatedC[2][0])
-    return tri
+function createToRender(vecA, vecB, vecC) {
+    return [new Vertex(vecA[0][0], vecA[1][0], vecA[2][0]), new Vertex(vecB[0][0], vecB[1][0], vecB[2][0]), new Vertex(vecC[0][0], vecC[1][0], vecC[2][0])]
 }
 
 export default function trianglesToRaster({
@@ -33,13 +27,16 @@ export default function trianglesToRaster({
                                           canvasWidth,
                                           canvasHeight,
                                           shading,
-                                          triangles) {
+                                          triangles,
+                                          indexBuffer,
+                                          visibleClipping
+                                          ) {
     let response = []
     for (let current = 0; current < triangles.length; current++) {
 
-        let vecInit = MatrixMultiplyVector(camera.worldMatrix, triangles[current].vectors[0].matrix),
-            vecA = MatrixMultiplyVector(camera.worldMatrix, triangles[current].vectors[1].matrix),
-            vecB = MatrixMultiplyVector(camera.worldMatrix, triangles[current].vectors[2].matrix)
+        let vecInit = indexBuffer[triangles[current].vertices[0]].worldMatrix,
+            vecA = indexBuffer[triangles[current].vertices[1]].worldMatrix,
+            vecB = indexBuffer[triangles[current].vertices[2]].worldMatrix
 
         let normalA, normalB
         normalA = subtractVectors(vecA, vecInit)
@@ -55,16 +52,30 @@ export default function trianglesToRaster({
             const normalisedLightVec = normalise(lightSource[0][0], lightSource[1][0], lightSource[2][0])
             const dotProdLightVec = Math.max(.1, dotProduct(crossP, normalisedLightVec))
 
-            vecInit = MatrixMultiplyVector(camera.viewMatrix, vecInit)
-            vecA = MatrixMultiplyVector(camera.viewMatrix, vecA)
-            vecB = MatrixMultiplyVector(camera.viewMatrix, vecB)
+            vecInit = indexBuffer[triangles[current].vertices[0]].viewMatrix
+            vecA = indexBuffer[triangles[current].vertices[1]].viewMatrix
+            vecB = indexBuffer[triangles[current].vertices[2]].viewMatrix
 
-            let newTri = new Triangle([vecInit[0][0], vecInit[1][0], vecInit[2][0]], [vecA[0][0], vecA[1][0], vecA[2][0]], [vecB[0][0], vecB[1][0], vecB[2][0]], triangles[current].noColor)
-            newTri.color = `hsl(0, 10%, ${shading ? ((Math.abs(dotProdLightVec).toFixed(2) * 50)) : 50}%)`
+            triangles[current].color = `hsl(0, 10%, ${shading ? ((Math.abs(dotProdLightVec).toFixed(2) * 50)) : 50}%)`
+            triangles[current].toRender = createToRender(vecInit, vecA, vecB)
 
-            const clipped = clipAgainstPlane([[0], [0], [zNear], [0]], [[0], [0], [1], [0]], newTri) // Culling part 2 (Frustum Z axis)
+            const clipped = clipAgainstPlane([[0], [0], [zNear], [0]], [[0], [0], [1], [0]], triangles[current], visibleClipping) // Culling part 2 (Frustum Z axis)
             for (let currentClipped = 0; currentClipped < clipped.quantity; currentClipped++) {
-                response.push(adjustTriangle(camera.worldMatrix, camera.viewMatrix, clipped.triangles[currentClipped], dotProdLightVec, fieldOfView, aspectRatio, zScale, zOffset, canvasWidth, canvasHeight))
+                let updatedA, updatedB, updatedC
+                if (clipped.quantity > 1) {
+                    updatedA = scaleIntoView(projectVector(clipped.triangles[currentClipped].toRender[0].matrix, fieldOfView, aspectRatio, zScale, zOffset), canvasWidth, canvasHeight)
+                    updatedB = scaleIntoView(projectVector(clipped.triangles[currentClipped].toRender[1].matrix, fieldOfView, aspectRatio, zScale, zOffset), canvasWidth, canvasHeight)
+                    updatedC = scaleIntoView(projectVector(clipped.triangles[currentClipped].toRender[2].matrix, fieldOfView, aspectRatio, zScale, zOffset), canvasWidth, canvasHeight)
+                } else {
+                    updatedA = indexBuffer[triangles[current].vertices[0]].projectedMatrix
+                    updatedB = indexBuffer[triangles[current].vertices[1]].projectedMatrix
+                    updatedC = indexBuffer[triangles[current].vertices[2]].projectedMatrix
+
+
+                }
+                clipped.triangles[currentClipped].toRender = createToRender(updatedA, updatedB, updatedC)
+
+                response.push(clipped.triangles[currentClipped])
             }
         }
     }
