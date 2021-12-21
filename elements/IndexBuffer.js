@@ -1,5 +1,4 @@
 import {MatrixMultiplyVector} from "../math/matrixOperations";
-import Vertex from "./Vertex";
 import {projectVector, scaleIntoView} from "../math/vectorOperations";
 import rotationMatrix from "../math/rotationMatrix";
 

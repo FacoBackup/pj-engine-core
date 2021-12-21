@@ -1,12 +1,10 @@
-import Vertex from "./Vertex";
-import {MatrixMultiplyVector} from "../math/matrixOperations";
-import rotationMatrix from "../math/rotationMatrix";
 import conf from '../../config.json'
 
 export default class Triangle {
     vertices = []
     color = 'rgba(0,0,0,0)'
     toRender = new Array(3)
+
 
     constructor(vertices,  noColor=false) {
         this.noColor = noColor

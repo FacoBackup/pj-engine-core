@@ -1,4 +1,3 @@
-import {MatrixMultiplyVector} from "../math/matrixOperations";
 import {
     crossProduct,
     dotProduct,
@@ -7,7 +6,6 @@ import {
     scaleIntoView,
     subtractVectors
 } from "../math/vectorOperations";
-import Triangle from "../elements/Triangle";
 import Vertex from "../elements/Vertex";
 import {clipAgainstPlane} from "./clippingHandler";
 
