@@ -45,6 +45,8 @@ export default class Mesh {
             listTriangles.push(toRaster[current])
             let nNewTriangles = 1;
             startClipping = performance.now()
+
+            // Culling part 3 (Frustum)
             for (pInt = 0; pInt < 4; pInt++) {
 
                 let nTrisToAdd = {quantity: 0, triangles: []}

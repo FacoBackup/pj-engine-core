@@ -51,7 +51,7 @@ export default function trianglesToRaster({
         const vCameraRay = subtractVectors(vecInit, camera.vector.matrix)
         const dotProd = dotProduct(crossP, vCameraRay)
 
-        if (dotProd < 0) {
+        if (dotProd < 0) { // Culling part 1
             const normalisedLightVec = normalise(lightSource[0][0], lightSource[1][0], lightSource[2][0])
             const dotProdLightVec = Math.max(.1, dotProduct(crossP, normalisedLightVec))
 
@@ -62,7 +62,7 @@ export default function trianglesToRaster({
             let newTri = new Triangle([vecInit[0][0], vecInit[1][0], vecInit[2][0]], [vecA[0][0], vecA[1][0], vecA[2][0]], [vecB[0][0], vecB[1][0], vecB[2][0]], triangles[current].noColor)
             newTri.color = `hsl(0, 10%, ${shading ? ((Math.abs(dotProdLightVec).toFixed(2) * 50)) : 50}%)`
 
-            const clipped = clipAgainstPlane([[0], [0], [zNear], [0]], [[0], [0], [1], [0]], newTri)
+            const clipped = clipAgainstPlane([[0], [0], [zNear], [0]], [[0], [0], [1], [0]], newTri) // Culling part 2 (Frustum Z axis)
             for (let currentClipped = 0; currentClipped < clipped.quantity; currentClipped++) {
                 response.push(adjustTriangle(camera.worldMatrix, camera.viewMatrix, clipped.triangles[currentClipped], dotProdLightVec, fieldOfView, aspectRatio, zScale, zOffset, canvasWidth, canvasHeight))
             }

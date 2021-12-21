@@ -6,7 +6,7 @@ export default class Grid {
     squareSize = 4
 
     constructor(ctx) {
-        this.computeVertexes(ctx)
+        this.computeVertices(ctx)
     }
 
     _square(x, z) {
@@ -15,7 +15,7 @@ export default class Grid {
         return [initTri, secTri]
     }
 
-    computeVertexes() {
+    computeVertices() {
 
         let offset = -(this.squareSize ** 2)
         for (let i = 0; i < this.triangleBudget / 2; i++) {

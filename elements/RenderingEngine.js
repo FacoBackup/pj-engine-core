@@ -1,9 +1,10 @@
 import Vector from "./Vector";
+import Camera from "./Camera";
 
 export default class RenderingEngine {
     meshes = []
     fieldOfViewAngle = 1.5708 / 2 // 90 degrees
-    camera = undefined
+    camera = new Camera(0, 0, 0)
     currentFrame = 0
 
     constructor(target) {
